@@ -7,12 +7,21 @@ const api = axios.create({
   }
 });
 
-// Interceptor to add JWT token
+// Interceptor to add JWT token & active role
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('nec_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const userStr = localStorage.getItem('nec_user');
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        if (u && u.role) {
+          config.headers['x-active-role'] = u.role;
+        }
+      } catch (e) {}
     }
     return config;
   },
@@ -39,8 +48,10 @@ api.interceptors.response.use(
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   demoLogin: (userId) => api.post('/auth/demo-login', { userId }),
+  switchRole: (role) => api.post('/auth/switch-role', { role }),
   getMe: () => api.get('/auth/me'),
-  getDemoUsers: () => api.get('/auth/demo-users')
+  getDemoUsers: () => api.get('/auth/demo-users'),
+  getDirectory: () => api.get('/auth/directory')
 };
 
 // Seminar Hall endpoints
@@ -57,7 +68,8 @@ export const bookingApi = {
   getById: (id) => api.get(`/bookings/${id}`),
   updateStatus: (id, status, coordinatorRemarks) => 
     api.put(`/bookings/${id}/status`, { status, coordinatorRemarks }),
-  acknowledgePass: (id) => api.put(`/bookings/${id}/acknowledge-pass`)
+  acknowledgePass: (id) => api.put(`/bookings/${id}/acknowledge-pass`),
+  cancel: (id, cancellationReason) => api.put(`/bookings/${id}/cancel`, { cancellationReason })
 };
 
 // Examiner Hospitality endpoints (HOD -> AO)

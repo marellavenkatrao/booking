@@ -12,43 +12,72 @@ export function AuthProvider({ children }) {
   const [demoAccounts, setDemoAccounts] = useState([]);
 
   useEffect(() => {
-    // Fetch demo accounts for quick switcher
-    const fetchAccounts = async () => {
+    const initAuth = async () => {
       try {
+        // Fetch official faculty and coordinator directory
         const res = await authApi.getDemoUsers();
         setDemoAccounts(res.data.users || []);
-        
-        // If no user is logged in, auto-login as HOD CSE for seamless first impression!
-        if (!localStorage.getItem('nec_token') && res.data.users && res.data.users.length > 0) {
-          const defaultHod = res.data.users.find(u => u.role === 'HOD') || res.data.users[0];
-          await demoLogin(defaultHod._id);
+
+        // Verify active session if token exists
+        const token = localStorage.getItem('nec_token');
+        if (token) {
+          try {
+            const meRes = await authApi.getMe();
+            if (meRes.data.user) {
+              setUser(meRes.data.user);
+              localStorage.setItem('nec_user', JSON.stringify(meRes.data.user));
+            }
+          } catch (err) {
+            console.warn('Session expired, clearing tokens');
+            localStorage.removeItem('nec_token');
+            localStorage.removeItem('nec_user');
+            setUser(null);
+          }
         }
       } catch (err) {
-        console.error('Failed to load demo accounts', err);
+        console.error('Failed to load accounts directory', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAccounts();
+    initAuth();
   }, []);
 
   const login = async (email, password) => {
     const res = await authApi.login(email, password);
-    const { token, user } = res.data;
+    const { token, user: loggedUser } = res.data;
     localStorage.setItem('nec_token', token);
-    localStorage.setItem('nec_user', JSON.stringify(user));
-    setUser(user);
-    return user;
+    localStorage.setItem('nec_user', JSON.stringify(loggedUser));
+    setUser(loggedUser);
+    return loggedUser;
   };
 
   const demoLogin = async (userId) => {
     const res = await authApi.demoLogin(userId);
-    const { token, user } = res.data;
+    const { token, user: loggedUser } = res.data;
     localStorage.setItem('nec_token', token);
-    localStorage.setItem('nec_user', JSON.stringify(user));
-    setUser(user);
-    return user;
+    localStorage.setItem('nec_user', JSON.stringify(loggedUser));
+    setUser(loggedUser);
+    return loggedUser;
+  };
+
+  const switchRole = async (newRole) => {
+    try {
+      const res = await authApi.switchRole(newRole);
+      const updatedUser = res.data.user;
+      localStorage.setItem('nec_user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      return updatedUser;
+    } catch (err) {
+      console.warn('Server role switch failed, applying locally', err);
+      if (user && (user.roles?.includes(newRole) || user.role === newRole)) {
+        const updated = { ...user, role: newRole };
+        localStorage.setItem('nec_user', JSON.stringify(updated));
+        setUser(updated);
+        return updated;
+      }
+    }
   };
 
   const logout = () => {
@@ -58,7 +87,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, demoAccounts, login, demoLogin, logout }}>
+    <AuthContext.Provider value={{ user, loading, demoAccounts, login, demoLogin, switchRole, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -26,7 +26,8 @@ import {
   FileText,
   Package,
   Trash2,
-  BarChart3
+  BarChart3,
+  Ban
 } from 'lucide-react';
 
 export default function HodDashboard() {
@@ -51,6 +52,12 @@ export default function HodDashboard() {
   const [viewingBookingPass, setViewingBookingPass] = useState(null);
   const [viewingSanctionOrder, setViewingSanctionOrder] = useState(null);
   const [viewingStationaryVoucher, setViewingStationaryVoucher] = useState(null);
+
+  // Cancellation facility state for Department HOD
+  const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelToast, setCancelToast] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -97,8 +104,60 @@ export default function HodDashboard() {
     }
   };
 
+  const handleInitiateCancel = (booking) => {
+    setCancellingBooking(booking);
+    setCancellationReason('');
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancellingBooking) return;
+    setCancelLoading(true);
+    try {
+      await bookingApi.cancel(cancellingBooking._id, cancellationReason);
+      setCancelToast(`Booking for "${cancellingBooking.eventName}" has been cancelled successfully.`);
+      setCancellingBooking(null);
+      setCancellationReason('');
+      await fetchData();
+      setRefreshKey(k => k + 1);
+      setTimeout(() => setCancelToast(''), 6000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel booking');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   return (
     <div>
+      {/* Cancellation Toast */}
+      {cancelToast && (
+        <div style={{
+          background: '#fef2f2',
+          border: '1px solid #f87171',
+          color: '#991b1b',
+          borderRadius: '10px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Ban size={18} />
+            <span>{cancelToast}</span>
+          </div>
+          <button 
+            onClick={() => setCancelToast('')}
+            style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontWeight: 800, fontSize: '1rem' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div style={{ 
         background: 'linear-gradient(135deg, #701a75 0%, #4a044e 100%)', 
@@ -351,7 +410,7 @@ export default function HodDashboard() {
               <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                 <FileText size={42} strokeWidth={1.5} style={{ opacity: 0.4, marginBottom: '8px' }} />
                 <p style={{ fontWeight: 600 }}>No approved passes delivered yet.</p>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Once a Coordinator (Dr. S.N Tirumalarao, Dr. M.VenkataRao, or Dr. S.Sunil) approves your booking, the pass appears here automatically.</p>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Once a Coordinator (Dr S N Tirumala Rao, Dr. V. VENKATA RAO, or Dr. D.Suneel) approves your booking, the pass appears here automatically.</p>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
@@ -388,20 +447,37 @@ export default function HodDashboard() {
                       </div>
 
                       <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '12px' }}>
-                        <div><strong>Date:</strong> {b.date} ({b.slot === 'FN' ? 'Forenoon 09:30 AM - 12:30 PM' : b.slot === 'AN' ? 'Afternoon 01:30 PM - 04:30 PM' : 'Full Day'})</div>
+                        <div>
+                          <strong>Date:</strong>{' '}
+                          {(b.isMultiDay || (b.fromDate && b.toDate && b.fromDate !== b.toDate)) 
+                            ? `${b.fromDate} to ${b.toDate} (Multi-Day)` 
+                            : (b.fromDate || b.date)}{' '}
+                          ({b.slot === 'FN' ? 'Forenoon 09:30 AM - 12:30 PM' : b.slot === 'AN' ? 'Afternoon 01:30 PM - 04:30 PM' : 'Full Day'})
+                        </div>
                         <div style={{ marginTop: '3px' }}><strong>Approved By:</strong> {b.coordinator?.name || b.coordinatorName || 'Hall Coordinator'}</div>
                         <div style={{ marginTop: '3px', color: '#166534', fontStyle: 'italic' }}>"{b.coordinatorRemarks || 'Approved by coordinator.'}"</div>
                       </div>
                     </div>
 
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleOpenPass(b)}
-                      style={{ width: '100%', padding: '9px', fontWeight: 700 }}
-                    >
-                      <Printer size={15} />
-                      View & Print Official Pass
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleOpenPass(b)}
+                        style={{ flex: 1, padding: '9px', fontWeight: 700 }}
+                      >
+                        <Printer size={15} />
+                        View & Print Pass
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={() => handleInitiateCancel(b)}
+                        style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', fontWeight: 700, padding: '9px 12px' }}
+                        title="Cancel this confirmed booking"
+                      >
+                        <Ban size={15} />
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -476,8 +552,21 @@ export default function HodDashboard() {
                           </div>
                         </td>
                         <td>
-                          <div style={{ fontWeight: 700 }}>{booking.date}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#1e40af' }}>
+                          <div>
+                            {(booking.isMultiDay || (booking.fromDate && booking.toDate && booking.fromDate !== booking.toDate)) ? (
+                              <div>
+                                <div style={{ fontWeight: 800, color: '#1e3a8a' }}>
+                                  {booking.fromDate} to {booking.toDate}
+                                </div>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6d28d9', background: '#ede9fe', padding: '1px 6px', borderRadius: '4px' }}>
+                                  Multi-Day Event
+                                </span>
+                              </div>
+                            ) : (
+                              <div style={{ fontWeight: 700 }}>{booking.fromDate || booking.date}</div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#1e40af', marginTop: '2px' }}>
                             {booking.slot === 'FN' ? 'Forenoon (9:30 - 12:30)' : booking.slot === 'AN' ? 'Afternoon (1:30 - 4:30)' : 'Full Day'}
                           </div>
                         </td>
@@ -486,26 +575,55 @@ export default function HodDashboard() {
                           <span className={`status-badge ${booking.status.toLowerCase()}`}>
                             {booking.status === 'APPROVED' && <CheckCircle size={12} />}
                             {booking.status === 'PENDING' && <AlertCircle size={12} />}
+                            {booking.status === 'CANCELLED' && <Ban size={12} />}
                             {booking.status === 'REJECTED' && <XCircle size={12} />}
                             {booking.status}
                           </span>
                         </td>
                         <td style={{ fontSize: '0.8rem', color: '#475569', maxWidth: '200px' }}>
-                          {booking.coordinatorRemarks || 'Awaiting coordinator review'}
+                          {booking.status === 'CANCELLED' ? (
+                            <div>
+                              <span style={{ color: '#dc2626', fontWeight: 700 }}>Cancelled by Dept</span>
+                              {booking.cancellationReason && (
+                                <div style={{ fontSize: '0.72rem', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>
+                                  "{booking.cancellationReason}"
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            booking.coordinatorRemarks || 'Awaiting coordinator review'
+                          )}
                         </td>
                         <td>
-                          {booking.status === 'APPROVED' ? (
-                            <button 
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => setViewingBookingPass(booking)}
-                              title="Print / View Official Sanction Pass"
-                            >
-                              <Printer size={13} />
-                              Pass
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Pending</span>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {booking.status === 'APPROVED' && (
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => setViewingBookingPass(booking)}
+                                title="Print / View Official Sanction Pass"
+                              >
+                                <Printer size={13} />
+                                Pass
+                              </button>
+                            )}
+                            {(booking.status === 'PENDING' || booking.status === 'APPROVED') && (
+                              <button
+                                className="btn btn-sm"
+                                style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', fontWeight: 700 }}
+                                onClick={() => handleInitiateCancel(booking)}
+                                title="Cancel this booking requisition"
+                              >
+                                <Ban size={13} />
+                                Cancel
+                              </button>
+                            )}
+                            {booking.status === 'CANCELLED' && (
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>Cancelled</span>
+                            )}
+                            {booking.status === 'REJECTED' && (
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Rejected</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -888,6 +1006,91 @@ export default function HodDashboard() {
         onClose={() => setViewingStationaryVoucher(null)}
         request={viewingStationaryVoucher}
       />
+
+      {/* Department Cancellation Modal */}
+      {cancellingBooking && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '16px', overflow: 'hidden' }}>
+            <div style={{ background: '#fee2e2', padding: '16px 20px', borderBottom: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#ef4444', color: '#ffffff', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ban size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#991b1b' }}>
+                    Cancel Seminar Hall Booking
+                  </h3>
+                  <div style={{ fontSize: '0.76rem', color: '#b91c1c' }}>
+                    Department Cancellation Request
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setCancellingBooking(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontSize: '1.2rem', padding: '4px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              <p style={{ fontSize: '0.88rem', color: '#334155', marginBottom: '14px' }}>
+                Are you sure you want to cancel the booking requisition for <strong>"{cancellingBooking.eventName}"</strong>?
+              </p>
+
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', fontSize: '0.82rem', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong style={{ color: '#475569' }}>Hall:</strong> <span style={{ fontWeight: 700, color: '#0f172a' }}>{cancellingBooking.hallName}</span>
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong style={{ color: '#475569' }}>Reservation Date(s):</strong> <span style={{ fontWeight: 700, color: '#1e40af' }}>
+                    {(cancellingBooking.isMultiDay || (cancellingBooking.fromDate && cancellingBooking.toDate && cancellingBooking.fromDate !== cancellingBooking.toDate))
+                      ? `${cancellingBooking.fromDate} to ${cancellingBooking.toDate}`
+                      : (cancellingBooking.fromDate || cancellingBooking.date)}
+                  </span>
+                </div>
+                <div>
+                  <strong style={{ color: '#475569' }}>Slot:</strong> <span>{cancellingBooking.slot === 'FN' ? 'Forenoon (09:30 AM - 12:30 PM)' : cancellingBooking.slot === 'AN' ? 'Afternoon (01:30 PM - 04:30 PM)' : 'Full Day'}</span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Reason for Cancellation (optional):
+                </label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  placeholder="e.g., Guest speaker rescheduled, event postponed, alternative department arrangement..."
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  style={{ width: '100%', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setCancellingBooking(null)}
+                  disabled={cancelLoading}
+                >
+                  Keep Booking
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleConfirmCancel}
+                  disabled={cancelLoading}
+                  style={{ background: '#dc2626', fontWeight: 800 }}
+                >
+                  {cancelLoading ? 'Cancelling...' : 'Confirm Cancellation'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,13 +19,32 @@ router.get('/coordinator/department-usage', authMiddleware, async (req, res) => 
 
     let query = {};
 
-    // Date range filter (format YYYY-MM-DD)
+    // Date range filter (format YYYY-MM-DD) supporting multi-day bookings
     if (fromDate && toDate) {
-      query.date = { $gte: fromDate, $lte: toDate };
+      query.$and = [
+        {
+          $or: [
+            { fromDate: { $lte: toDate } },
+            { date: { $lte: toDate } }
+          ]
+        },
+        {
+          $or: [
+            { toDate: { $gte: fromDate } },
+            { date: { $gte: fromDate } }
+          ]
+        }
+      ];
     } else if (fromDate) {
-      query.date = { $gte: fromDate };
+      query.$or = [
+        { toDate: { $gte: fromDate } },
+        { date: { $gte: fromDate } }
+      ];
     } else if (toDate) {
-      query.date = { $lte: toDate };
+      query.$or = [
+        { fromDate: { $lte: toDate } },
+        { date: { $lte: toDate } }
+      ];
     }
 
     // Hall filter:
@@ -190,13 +209,32 @@ router.get('/hod/hall-usage', authMiddleware, async (req, res) => {
       query.hod = req.user._id;
     }
 
-    // Date range filter
+    // Date range filter supporting multi-day bookings
     if (fromDate && toDate) {
-      query.date = { $gte: fromDate, $lte: toDate };
+      query.$and = [
+        {
+          $or: [
+            { fromDate: { $lte: toDate } },
+            { date: { $lte: toDate } }
+          ]
+        },
+        {
+          $or: [
+            { toDate: { $gte: fromDate } },
+            { date: { $gte: fromDate } }
+          ]
+        }
+      ];
     } else if (fromDate) {
-      query.date = { $gte: fromDate };
+      query.$or = [
+        { toDate: { $gte: fromDate } },
+        { date: { $gte: fromDate } }
+      ];
     } else if (toDate) {
-      query.date = { $lte: toDate };
+      query.$or = [
+        { fromDate: { $lte: toDate } },
+        { date: { $lte: toDate } }
+      ];
     }
 
     if (hallId && hallId !== 'ALL' && mongoose.isValidObjectId(hallId)) {

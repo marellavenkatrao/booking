@@ -4,12 +4,25 @@ import { X, Calendar, Clock, Building2, User, CheckCircle, AlertCircle, Sparkles
 import confetti from 'canvas-confetti';
 
 export default function BookingModal({ isOpen, onClose, preselectedHall, preselectedDate, onSuccess }) {
+  const getTodayStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getTodayStr();
+  const initialDate = preselectedDate && preselectedDate >= todayStr ? preselectedDate : todayStr;
+
   const [halls, setHalls] = useState([]);
   const [formData, setFormData] = useState({
     hallId: '',
     eventName: '',
     eventType: 'Guest Lecture',
-    date: preselectedDate || new Date().toISOString().split('T')[0],
+    date: initialDate,
+    fromDate: initialDate,
+    toDate: initialDate,
     slot: 'FN',
     startTime: '09:30 AM',
     endTime: '12:30 PM',
@@ -36,16 +49,30 @@ export default function BookingModal({ isOpen, onClose, preselectedHall, presele
         const loaded = res.data.halls || [];
         setHalls(loaded);
 
+        const effDate = preselectedDate && preselectedDate >= todayStr ? preselectedDate : todayStr;
+
         if (preselectedHall) {
           const match = loaded.find(h => 
             h._id === (preselectedHall.hallId || preselectedHall._id) || 
             h.code === preselectedHall.code
           ) || preselectedHall;
           const hid = match._id || match.hallId;
-          setFormData(prev => ({ ...prev, hallId: hid, date: preselectedDate || prev.date }));
+          setFormData(prev => ({ 
+            ...prev, 
+            hallId: hid, 
+            date: effDate,
+            fromDate: effDate,
+            toDate: prev.toDate >= effDate ? prev.toDate : effDate
+          }));
           setSelectedHallInfo(match);
         } else if (loaded.length > 0) {
-          setFormData(prev => ({ ...prev, hallId: loaded[0]._id, date: preselectedDate || prev.date }));
+          setFormData(prev => ({ 
+            ...prev, 
+            hallId: loaded[0]._id, 
+            date: effDate,
+            fromDate: effDate,
+            toDate: prev.toDate >= effDate ? prev.toDate : effDate
+          }));
           setSelectedHallInfo(loaded[0]);
         }
       } catch (err) {
@@ -73,6 +100,14 @@ export default function BookingModal({ isOpen, onClose, preselectedHall, presele
     setFormData(prev => ({ ...prev, slot, startTime: start, endTime: end }));
   };
 
+  const calculateDays = (start, end) => {
+    if (!start || !end) return 1;
+    const d1 = new Date(start);
+    const d2 = new Date(end);
+    const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 1;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -86,9 +121,35 @@ export default function BookingModal({ isOpen, onClose, preselectedHall, presele
       return;
     }
 
+    const from = formData.fromDate || formData.date;
+    const to = formData.toDate || from;
+
+    if (!from) {
+      setError('Please select a valid From Date.');
+      return;
+    }
+
+    // 1. Date Validation: date must be greater than or equal to today
+    if (from < todayStr) {
+      setError(`Booking date cannot be in the past. Date (${from}) must be greater than or equal to today (${todayStr}).`);
+      return;
+    }
+
+    // 2. Multiple Days: toDate cannot be earlier than fromDate
+    if (to < from) {
+      setError(`To Date (${to}) cannot be earlier than From Date (${from}).`);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await bookingApi.create(formData);
+      const res = await bookingApi.create({
+        ...formData,
+        date: from,
+        fromDate: from,
+        toDate: to,
+        isMultiDay: from !== to
+      });
       confetti({
         particleCount: 80,
         spread: 70,
@@ -138,9 +199,9 @@ export default function BookingModal({ isOpen, onClose, preselectedHall, presele
               <label className="form-label">Select Seminar Hall & Coordinator *</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                 {(halls.length > 0 ? halls : [
-                  { _id: 'BLOCK-2', code: 'BLOCK-2', name: 'Block-2 Seminar Hall', coordinatorName: 'Dr. S.N Tirumalarao', capacity: 250 },
-                  { _id: 'BLOCK-3', code: 'BLOCK-3', name: 'Block-3 Seminar Hall', coordinatorName: 'Dr. M.VenkataRao', capacity: 320 },
-                  { _id: 'BLOCK-4', code: 'BLOCK-4', name: 'Block-4 Seminar Hall', coordinatorName: 'Dr. S.Sunil', capacity: 450 }
+                  { _id: 'BLOCK-2', code: 'BLOCK-2', name: 'Block-2 Seminar Hall', coordinatorName: 'Dr S N Tirumala Rao', capacity: 250 },
+                  { _id: 'BLOCK-3', code: 'BLOCK-3', name: 'Block-3 Seminar Hall', coordinatorName: 'Dr. V. VENKATA RAO', capacity: 320 },
+                  { _id: 'BLOCK-4', code: 'BLOCK-4', name: 'Block-4 Seminar Hall', coordinatorName: 'Dr. D.Suneel', capacity: 450 }
                 ]).map((h) => {
                   const isSelected = formData.hallId === h._id || formData.hallId === h.code || selectedHallInfo?.code === h.code;
                   return (
@@ -220,44 +281,94 @@ export default function BookingModal({ isOpen, onClose, preselectedHall, presele
               </div>
             </div>
 
-            {/* Date & Slot selection */}
-            <div className="form-grid-2">
-              <div className="form-group">
-                <label className="form-label">Date of Event *</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
+            {/* Multiple Days Booking: From Date and To Date */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>From Date (Start) *</span>
+                    <span style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700 }}>Min: Today</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    min={todayStr}
+                    value={formData.fromDate || formData.date}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        fromDate: val,
+                        date: val,
+                        toDate: (!prev.toDate || prev.toDate < val) ? val : prev.toDate
+                      }));
+                    }}
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>To Date (End) *</span>
+                    <span style={{ fontSize: '0.72rem', color: '#701a75', fontWeight: 700 }}>
+                      {formData.fromDate !== formData.toDate ? 'Multiple Days' : 'Single Day'}
+                    </span>
+                  </label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    min={formData.fromDate || todayStr}
+                    value={formData.toDate || formData.fromDate || formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, toDate: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Time Slot *</label>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${formData.slot === 'FN' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => handleSlotChange('FN')}
-                  >
-                    Forenoon (FN)
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${formData.slot === 'AN' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => handleSlotChange('AN')}
-                  >
-                    Afternoon (AN)
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${formData.slot === 'FULL_DAY' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => handleSlotChange('FULL_DAY')}
-                  >
-                    Full Day
-                  </button>
+              {formData.fromDate && (
+                <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Calendar size={15} color="#701a75" />
+                  <span>
+                    {formData.fromDate === formData.toDate ? (
+                      <span>Single Day Booking: <strong>{formData.fromDate}</strong></span>
+                    ) : (
+                      <span style={{ color: '#701a75' }}>
+                        Multi-Day Reservation: <strong>{formData.fromDate}</strong> to <strong>{formData.toDate}</strong> ({calculateDays(formData.fromDate, formData.toDate)} Days)
+                      </span>
+                    )}
+                  </span>
                 </div>
+              )}
+            </div>
+
+            {/* Time Slot Selection */}
+            <div className="form-group">
+              <label className="form-label">Time Slot *</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${formData.slot === 'FN' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => handleSlotChange('FN')}
+                  style={{ flex: 1 }}
+                >
+                  Forenoon (FN: 9:30 - 12:30)
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${formData.slot === 'AN' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => handleSlotChange('AN')}
+                  style={{ flex: 1 }}
+                >
+                  Afternoon (AN: 1:30 - 4:30)
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${formData.slot === 'FULL_DAY' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => handleSlotChange('FULL_DAY')}
+                  style={{ flex: 1 }}
+                >
+                  Full Day (9:30 - 4:30)
+                </button>
               </div>
             </div>
 

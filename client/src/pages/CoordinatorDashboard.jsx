@@ -82,9 +82,9 @@ export default function CoordinatorDashboard() {
     : bookings.filter(b => b.status === filterStatus);
 
   const hallName = user?.assignedHall?.name || (
-    user?.name?.includes('Tirumalarao') ? 'Block-2 Seminar Hall' :
-    user?.name?.includes('VenkataRao') ? 'Block-3 Seminar Hall' :
-    user?.name?.includes('Sunil') ? 'Block-4 Seminar Hall' : 'Assigned Seminar Hall'
+    user?.email === 'csehod@nrtec.in' || user?.name?.toLowerCase().includes('tirumala') ? 'Block-2 Seminar Hall' :
+    user?.email === 'ecehod@nrtec.in' || user?.name?.toLowerCase().includes('venkata') ? 'Block-3 Seminar Hall' :
+    user?.email === 'viceprincipal@nrtec.in' || user?.name?.toLowerCase().includes('suneel') || user?.name?.toLowerCase().includes('sunil') ? 'Block-4 Seminar Hall' : 'Assigned Seminar Hall'
   );
 
   return (
@@ -276,8 +276,17 @@ export default function CoordinatorDashboard() {
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 800, color: '#1e3a8a' }}>
                       <Calendar size={16} />
-                      <span>{b.date}</span>
+                      <span>
+                        {(b.isMultiDay || (b.fromDate && b.toDate && b.fromDate !== b.toDate)) 
+                          ? `${b.fromDate} to ${b.toDate}` 
+                          : (b.fromDate || b.date)}
+                      </span>
                     </div>
+                    {b.isMultiDay && (
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6d28d9' }}>
+                        Multi-Day Booking ({Math.max(1, Math.round((new Date(b.toDate) - new Date(b.fromDate)) / (1000 * 60 * 60 * 24)) + 1)} Days)
+                      </div>
+                    )}
                     <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#701a75', marginTop: '2px' }}>
                       Slot: {b.slot === 'FN' ? 'Forenoon (09:30 AM - 12:30 PM)' : b.slot === 'AN' ? 'Afternoon (01:30 PM - 04:30 PM)' : 'Full Day'}
                     </div>
@@ -364,7 +373,7 @@ export default function CoordinatorDashboard() {
           </div>
 
           <div style={{ display: 'flex', gap: '6px' }}>
-            {['ALL', 'APPROVED', 'PENDING', 'REJECTED'].map((st) => (
+            {['ALL', 'APPROVED', 'PENDING', 'CANCELLED', 'REJECTED'].map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
@@ -410,7 +419,20 @@ export default function CoordinatorDashboard() {
                       <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{b.eventType}</div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 700 }}>{b.date}</div>
+                      <div>
+                        {(b.isMultiDay || (b.fromDate && b.toDate && b.fromDate !== b.toDate)) ? (
+                          <div>
+                            <div style={{ fontWeight: 800, color: '#1e3a8a' }}>
+                              {b.fromDate} to {b.toDate}
+                            </div>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6d28d9', background: '#ede9fe', padding: '1px 6px', borderRadius: '4px' }}>
+                              Multi-Day
+                            </span>
+                          </div>
+                        ) : (
+                          <div style={{ fontWeight: 700 }}>{b.fromDate || b.date}</div>
+                        )}
+                      </div>
                       <div style={{ fontSize: '0.75rem', color: '#1e40af' }}>{b.slot}</div>
                     </td>
                     <td>{b.expectedAudience}</td>
@@ -420,7 +442,18 @@ export default function CoordinatorDashboard() {
                       </span>
                     </td>
                     <td style={{ fontSize: '0.8rem', color: '#475569', maxWidth: '200px' }}>
-                      {b.coordinatorRemarks || '—'}
+                      {b.status === 'CANCELLED' ? (
+                        <div>
+                          <span style={{ color: '#dc2626', fontWeight: 700 }}>Cancelled by Dept</span>
+                          {b.cancellationReason && (
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>
+                              "{b.cancellationReason}"
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        b.coordinatorRemarks || '—'
+                      )}
                     </td>
                     <td>
                       {b.status === 'APPROVED' ? (

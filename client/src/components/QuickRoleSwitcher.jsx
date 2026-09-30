@@ -7,13 +7,13 @@ export default function QuickRoleSwitcher() {
 
   if (!demoAccounts || demoAccounts.length === 0) return null;
 
-  // Filter key accounts for quick access
-  const b2Coord = demoAccounts.find(u => u.role === 'COORDINATOR' && u.name.includes('Tirumalarao'));
-  const b3Coord = demoAccounts.find(u => u.role === 'COORDINATOR' && u.name.includes('VenkataRao'));
-  const b4Coord = demoAccounts.find(u => u.role === 'COORDINATOR' && u.name.includes('Sunil'));
-  const hodCse = demoAccounts.find(u => u.role === 'HOD' && u.email.includes('cse'));
-  const hodEce = demoAccounts.find(u => u.role === 'HOD' && u.email.includes('ece'));
-  const aoAccount = demoAccounts.find(u => u.role === 'AO');
+  // Filter key accounts with real emails
+  const b2Coord = demoAccounts.find(u => u.email === 'csehod@nrtec.in');
+  const b3Coord = demoAccounts.find(u => u.email === 'ecehod@nrtec.in');
+  const b4Coord = demoAccounts.find(u => u.email === 'viceprincipal@nrtec.in');
+  const hodMech = demoAccounts.find(u => u.email === 'mechhod@nrtec.in');
+  const hodCivil = demoAccounts.find(u => u.email === 'civilhod@nrtec.in');
+  const aoAccount = demoAccounts.find(u => u.email === 'ao@nrtec.in');
 
   const handleSwitch = async (account) => {
     if (!account) return;
@@ -29,42 +29,18 @@ export default function QuickRoleSwitcher() {
       <div className="quick-switcher-inner">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Sparkles size={16} color="#fde047" />
-          <span style={{ fontWeight: 700, letterSpacing: '0.3px' }}>1-Click Role Switcher (Live Demo Mode):</span>
+          <span style={{ fontWeight: 700, letterSpacing: '0.3px' }}>Faculty Fast Selector:</span>
         </div>
 
         <div className="switcher-pills">
-          {/* HOD Buttons */}
-          {hodCse && (
-            <button
-              onClick={() => handleSwitch(hodCse)}
-              className={`switcher-btn ${user?.email === hodCse.email ? 'active' : ''}`}
-              title="Login as HOD Computer Science & Engineering"
-            >
-              <UserCheck size={13} />
-              HOD CSE (Dr. K. Rajesh)
-            </button>
-          )}
-
-          {hodEce && (
-            <button
-              onClick={() => handleSwitch(hodEce)}
-              className={`switcher-btn ${user?.email === hodEce.email ? 'active' : ''}`}
-              title="Login as HOD Electronics & Communication"
-            >
-              <UserCheck size={13} />
-              HOD ECE (Dr. P. Lakshman)
-            </button>
-          )}
-
-          {/* Coordinators */}
           {b2Coord && (
             <button
               onClick={() => handleSwitch(b2Coord)}
               className={`switcher-btn ${user?.email === b2Coord.email ? 'active' : ''}`}
-              title="Coordinator for Block-2 Seminar Hall"
+              title="CSE HOD & Block-2 Seminar Hall Coordinator"
             >
-              <Building2 size={13} />
-              Block-2 Coord (Dr. S.N Tirumalarao)
+              <UserCheck size={13} />
+              Dr S N Tirumala Rao (CSE / Block-2)
             </button>
           )}
 
@@ -72,10 +48,10 @@ export default function QuickRoleSwitcher() {
             <button
               onClick={() => handleSwitch(b3Coord)}
               className={`switcher-btn ${user?.email === b3Coord.email ? 'active' : ''}`}
-              title="Coordinator for Block-3 Seminar Hall"
+              title="ECE HOD & Block-3 Seminar Hall Coordinator"
             >
-              <Building2 size={13} />
-              Block-3 Coord (Dr. M.VenkataRao)
+              <UserCheck size={13} />
+              Dr. V. VENKATA RAO (ECE / Block-3)
             </button>
           )}
 
@@ -83,23 +59,44 @@ export default function QuickRoleSwitcher() {
             <button
               onClick={() => handleSwitch(b4Coord)}
               className={`switcher-btn ${user?.email === b4Coord.email ? 'active' : ''}`}
-              title="Coordinator for Block-4 Seminar Hall"
+              title="Vice Principal & Coordinator - Block-4 Seminar Hall"
             >
               <Building2 size={13} />
-              Block-4 Coord (Dr. S.Sunil)
+              Dr. D.Suneel (VP / Block-4)
             </button>
           )}
 
-          {/* AO */}
+          {hodMech && (
+            <button
+              onClick={() => handleSwitch(hodMech)}
+              className={`switcher-btn ${user?.email === hodMech.email ? 'active' : ''}`}
+              title="HOD Mechanical Engineering"
+            >
+              <UserCheck size={13} />
+              HOD MECH
+            </button>
+          )}
+
+          {hodCivil && (
+            <button
+              onClick={() => handleSwitch(hodCivil)}
+              className={`switcher-btn ${user?.email === hodCivil.email ? 'active' : ''}`}
+              title="HOD Civil Engineering"
+            >
+              <UserCheck size={13} />
+              HOD CIVIL
+            </button>
+          )}
+
           {aoAccount && (
             <button
               onClick={() => handleSwitch(aoAccount)}
               className={`switcher-btn ${user?.role === 'AO' ? 'active' : ''}`}
-              title="Login as Administrative Officer (AO)"
+              title="Administrative Officer"
               style={{ borderColor: '#fde047' }}
             >
               <ShieldCheck size={13} color={user?.role === 'AO' ? '#713f12' : '#fde047'} />
-              AO Office (Sri K. Srinivasa Rao)
+              Sri K. Srinivasa Rao (AO)
             </button>
           )}
         </div>

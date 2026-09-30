@@ -22,6 +22,9 @@ const hallBookingSchema = new mongoose.Schema({
     default: 'Guest Lecture' 
   },
   date: { type: String, required: true }, // Format: YYYY-MM-DD
+  fromDate: { type: String },              // Format: YYYY-MM-DD
+  toDate: { type: String },                // Format: YYYY-MM-DD
+  isMultiDay: { type: Boolean, default: false },
   slot: { 
     type: String, 
     enum: ['FN', 'AN', 'FULL_DAY', 'CUSTOM'], 
@@ -50,6 +53,8 @@ const hallBookingSchema = new mongoose.Schema({
   },
   coordinatorRemarks: { type: String, default: '' },
   actionDate: { type: Date, default: null },
+  cancellationReason: { type: String, default: '' },
+  cancelledAt: { type: Date, default: null },
   passNumber: { type: String, default: '' },
   passSentToHod: { type: Boolean, default: false },
   passSentAt: { type: Date, default: null },
@@ -57,11 +62,23 @@ const hallBookingSchema = new mongoose.Schema({
   coordinatorSignature: { type: String, default: '' }
 }, { timestamps: true });
 
-// Auto-generate booking ID
+// Auto-generate booking ID & normalize date fields
 hallBookingSchema.pre('save', async function(next) {
   if (!this.bookingId) {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     this.bookingId = `NEC-SH-${new Date().getFullYear()}-${randomNum}`;
+  }
+  if (!this.fromDate && this.date) {
+    this.fromDate = this.date;
+  }
+  if (!this.toDate) {
+    this.toDate = this.fromDate || this.date;
+  }
+  if (!this.date && this.fromDate) {
+    this.date = this.fromDate;
+  }
+  if (this.fromDate && this.toDate && this.fromDate !== this.toDate) {
+    this.isMultiDay = true;
   }
   next();
 });

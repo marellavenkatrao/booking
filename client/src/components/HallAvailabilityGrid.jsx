@@ -3,7 +3,7 @@ import { hallApi } from '../services/api';
 import { Calendar as CalendarIcon, Clock, Users, CheckCircle, AlertCircle, XCircle, MapPin, Sparkles, PlusCircle } from 'lucide-react';
 
 export default function HallAvailabilityGrid({ onSelectHallToBook, refreshTrigger }) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [loading, setLoading] = useState(false);
   const [hallsData, setHallsData] = useState([]);
@@ -73,6 +73,7 @@ export default function HallAvailabilityGrid({ onSelectHallToBook, refreshTrigge
             <CalendarIcon size={16} color="#475569" />
             <input
               type="date"
+              min={todayStr}
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               style={{

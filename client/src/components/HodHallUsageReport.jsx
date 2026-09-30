@@ -444,7 +444,20 @@ export default function HodHallUsageReport({ user }) {
                 {bookings.map(b => (
                   <tr key={b._id}>
                     <td>
-                      <div style={{ fontWeight: 800, color: '#1e293b' }}>{b.date}</div>
+                      <div>
+                        {(b.isMultiDay || (b.fromDate && b.toDate && b.fromDate !== b.toDate)) ? (
+                          <div>
+                            <div style={{ fontWeight: 800, color: '#1e293b' }}>
+                              {b.fromDate} to {b.toDate}
+                            </div>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6d28d9', background: '#ede9fe', padding: '1px 6px', borderRadius: '4px' }}>
+                              Multi-Day
+                            </span>
+                          </div>
+                        ) : (
+                          <div style={{ fontWeight: 800, color: '#1e293b' }}>{b.fromDate || b.date}</div>
+                        )}
+                      </div>
                       <div style={{ fontSize: '0.74rem', color: '#701a75', fontWeight: 700 }}>
                         {b.slot === 'FN' ? 'Forenoon (FN)' : b.slot === 'AN' ? 'Afternoon (AN)' : 'Full Day'}
                       </div>

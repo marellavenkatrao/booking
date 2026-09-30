@@ -9,6 +9,10 @@ const userSchema = new mongoose.Schema({
     enum: ['HOD', 'COORDINATOR', 'AO'], 
     required: true 
   },
+  roles: [{
+    type: String,
+    enum: ['HOD', 'COORDINATOR', 'AO']
+  }],
   department: { type: String, default: '' },
   designation: { type: String, default: '' },
   assignedHall: { 
@@ -16,7 +20,16 @@ const userSchema = new mongoose.Schema({
     ref: 'SeminarHall',
     default: null 
   },
-  phone: { type: String, default: '' }
+  phone: { type: String, default: '' },
+  landline: { type: String, default: '' }
 }, { timestamps: true });
 
+userSchema.pre('save', function(next) {
+  if (!this.roles || this.roles.length === 0) {
+    this.roles = [this.role];
+  }
+  next();
+});
+
 module.exports = mongoose.model('User', userSchema);
+

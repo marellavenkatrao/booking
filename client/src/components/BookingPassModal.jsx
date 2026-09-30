@@ -96,7 +96,9 @@ export default function BookingPassModal({ isOpen, onClose, booking }) {
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={{ padding: '8px 4px', color: '#64748b' }}>Reservation Date & Slot:</td>
                   <td style={{ padding: '8px 4px', fontWeight: 700, color: '#1e3a8a' }}>
-                    {booking.date} ({booking.slot === 'FN' ? 'Forenoon 09:30 AM - 12:30 PM' : booking.slot === 'AN' ? 'Afternoon 01:30 PM - 04:30 PM' : 'Full Day 09:30 AM - 04:30 PM'})
+                    {(booking.isMultiDay || (booking.fromDate && booking.toDate && booking.fromDate !== booking.toDate))
+                      ? `${booking.fromDate} to ${booking.toDate}`
+                      : (booking.fromDate || booking.date)} ({booking.slot === 'FN' ? 'Forenoon 09:30 AM - 12:30 PM' : booking.slot === 'AN' ? 'Afternoon 01:30 PM - 04:30 PM' : 'Full Day 09:30 AM - 04:30 PM'})
                   </td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
@@ -113,8 +115,10 @@ export default function BookingPassModal({ isOpen, onClose, booking }) {
                 </tr>
                 <tr>
                   <td style={{ padding: '8px 4px', color: '#64748b' }}>Coordinator Remarks:</td>
-                  <td style={{ padding: '8px 4px', fontStyle: 'italic', color: '#15803d' }}>
-                    "{booking.coordinatorRemarks || 'Approved by Seminar Hall Coordinator.'}"
+                  <td style={{ padding: '8px 4px', fontStyle: 'italic', color: booking.status === 'CANCELLED' ? '#dc2626' : '#15803d' }}>
+                    {booking.status === 'CANCELLED' 
+                      ? `Cancelled: ${booking.cancellationReason || 'Booking cancelled by Department'}` 
+                      : `"${booking.coordinatorRemarks || 'Approved by Seminar Hall Coordinator.'}"`}
                   </td>
                 </tr>
               </tbody>
@@ -123,8 +127,8 @@ export default function BookingPassModal({ isOpen, onClose, booking }) {
             {/* Stamp and Signatures */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '30px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1' }}>
               <div>
-                <div className="official-stamp">
-                  ✓ SANCTIONED & CONFIRMED
+                <div className="official-stamp" style={booking.status === 'CANCELLED' ? { color: '#dc2626', borderColor: '#dc2626' } : {}}>
+                  {booking.status === 'CANCELLED' ? '✕ CANCELLED' : '✓ SANCTIONED & CONFIRMED'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '6px' }}>
                   System Verified • NEC Central Scheduler

@@ -26,47 +26,55 @@ async function seed() {
 
     const defaultPassword = await bcrypt.hash('nec@123', 10);
 
-    // 1. Create Coordinators
-    const coord1 = await User.create({
-      name: 'Dr. S.N Tirumalarao',
-      email: 'tirumalarao.b2@nec.edu.in',
+    // 1. Create Coordinators and Dual-Role Faculty
+    // Block-2 Coordinator & CSE HOD: Dr S N Tirumala Rao
+    const userCse = await User.create({
+      name: 'Dr S N Tirumala Rao',
+      email: 'csehod@nrtec.in',
       password: defaultPassword,
-      role: 'COORDINATOR',
-      department: 'Computer Science & Engineering',
-      designation: 'Professor & Coordinator - Block-2 Seminar Hall',
-      phone: '+91 94401 23456'
+      role: 'HOD',
+      roles: ['HOD', 'COORDINATOR'],
+      department: 'Computer Science & Engineering (CSE)',
+      designation: 'Professor & HOD (CSE) | Block-2 Seminar Hall Coordinator',
+      phone: '8247394015',
+      landline: '08647-239912'
     });
 
-    const coord2 = await User.create({
-      name: 'Dr. M.VenkataRao',
-      email: 'venkatarao.b3@nec.edu.in',
+    // Block-3 Coordinator & ECE HOD: Dr. V. VENKATA RAO
+    const userEce = await User.create({
+      name: 'Dr. V. VENKATA RAO',
+      email: 'ecehod@nrtec.in',
       password: defaultPassword,
-      role: 'COORDINATOR',
-      department: 'Electronics & Communication Engineering',
-      designation: 'Professor & Coordinator - Block-3 Seminar Hall',
-      phone: '+91 94402 34567'
+      role: 'HOD',
+      roles: ['HOD', 'COORDINATOR'],
+      department: 'Electronics & Communication Engineering (ECE)',
+      designation: 'Professor & HOD (ECE) | Block-3 Seminar Hall Coordinator',
+      phone: '9441127485',
+      landline: '08647-239914'
     });
 
-    const coord3 = await User.create({
-      name: 'Dr. S.Sunil',
-      email: 'sunil.b4@nec.edu.in',
+    // Block-4 Coordinator: Dr. D.Suneel (Vice Principal)
+    const userVicePrincipal = await User.create({
+      name: 'Dr. D.Suneel',
+      email: 'viceprincipal@nrtec.in',
       password: defaultPassword,
       role: 'COORDINATOR',
-      department: 'Mechanical Engineering',
-      designation: 'Associate Professor & Coordinator - Block-4 Seminar Hall',
-      phone: '+91 94403 45678'
+      roles: ['COORDINATOR'],
+      department: 'Mechanical Engineering & Administration',
+      designation: 'Vice Principal & Coordinator - Block-4 Seminar Hall',
+      phone: '9441127485'
     });
 
-    // 2. Create the 3 Seminar Halls
+    // 2. Create the 3 Official Seminar Halls
     const hall1 = await SeminarHall.create({
       name: 'Block-2 Seminar Hall',
       code: 'BLOCK-2',
       block: 'Block-2',
       capacity: 250,
-      coordinator: coord1._id,
-      coordinatorName: 'Dr. S.N Tirumalarao',
-      coordinatorPhone: '+91 94401 23456',
-      coordinatorEmail: 'tirumalarao.b2@nec.edu.in',
+      coordinator: userCse._id,
+      coordinatorName: 'Dr S N Tirumala Rao',
+      coordinatorPhone: '8247394015',
+      coordinatorEmail: 'csehod@nrtec.in',
       location: 'Ground Floor, Block-2 (Main Admin & CSE Wing)',
       description: 'Air-conditioned seminar hall equipped with high-lumen laser projector, motorized screen, JBL surround audio, podium mic, and wireless lapel mics. Ideal for workshops and guest lectures.',
       facilities: ['Centralized AC', 'High-Lumen Projector', 'JBL Sound System', 'Smart Podium & Mic', 'High-Speed Wi-Fi', 'Motorized Screen']
@@ -77,10 +85,10 @@ async function seed() {
       code: 'BLOCK-3',
       block: 'Block-3',
       capacity: 320,
-      coordinator: coord2._id,
-      coordinatorName: 'Dr. M.VenkataRao',
-      coordinatorPhone: '+91 94402 34567',
-      coordinatorEmail: 'venkatarao.b3@nec.edu.in',
+      coordinator: userEce._id,
+      coordinatorName: 'Dr. V. VENKATA RAO',
+      coordinatorPhone: '9441127485',
+      coordinatorEmail: 'ecehod@nrtec.in',
       location: 'First Floor, Block-3 (ECE & EEE Wing)',
       description: 'Modern digital hall with interactive LED video wall, video conferencing setup, tiered executive cushioned seating, and advanced acoustic design.',
       facilities: ['Centralized AC', 'Interactive LED Video Wall', 'Polycom Video Conferencing', 'Acoustic Wall Paneling', 'Dual Wireless Mics', 'Recording Camera']
@@ -91,90 +99,130 @@ async function seed() {
       code: 'BLOCK-4',
       block: 'Block-4',
       capacity: 450,
-      coordinator: coord3._id,
-      coordinatorName: 'Dr. S.Sunil',
-      coordinatorPhone: '+91 94403 45678',
-      coordinatorEmail: 'sunil.b4@nec.edu.in',
+      coordinator: userVicePrincipal._id,
+      coordinatorName: 'Dr. D.Suneel',
+      coordinatorPhone: '9441127485',
+      coordinatorEmail: 'viceprincipal@nrtec.in',
       location: 'Second Floor, Block-4 (Mechanical & Civil Wing)',
       description: 'Grand auditorium-style seminar hall with elevated stage, large seating capacity, theatrical stage lighting, green room, and powerful digital public address system.',
       facilities: ['Centralized AC', 'Stage & Theatrical Lighting', 'Dual Projectors', 'Auditorium Seating', 'Digital Audio Mixer', 'Backstage Facility']
     });
 
     // Update coordinators with assigned hall references
-    coord1.assignedHall = hall1._id;
-    await coord1.save();
-    coord2.assignedHall = hall2._id;
-    await coord2.save();
-    coord3.assignedHall = hall3._id;
-    await coord3.save();
+    userCse.assignedHall = hall1._id;
+    await userCse.save();
 
-    // 3. Create Department HODs
-    const hodCse = await User.create({
-      name: 'Dr. K. Rajesh',
-      email: 'hod.cse@nec.edu.in',
+    userEce.assignedHall = hall2._id;
+    await userEce.save();
+
+    userVicePrincipal.assignedHall = hall3._id;
+    await userVicePrincipal.save();
+
+    // 3. Create Remaining Department HODs
+    const userCivil = await User.create({
+      name: 'Dr. P. Naga Sowjanya',
+      email: 'civilhod@nrtec.in',
       password: defaultPassword,
       role: 'HOD',
-      department: 'Computer Science & Engineering (CSE)',
-      designation: 'Professor & Head of Department - CSE',
-      phone: '+91 98480 11223'
+      roles: ['HOD'],
+      department: 'Civil Engineering (CIVIL)',
+      designation: 'Professor & Head of Department - Civil Engineering',
+      phone: '+91 8647 239900'
     });
 
-    const hodEce = await User.create({
-      name: 'Dr. P. Lakshman',
-      email: 'hod.ece@nec.edu.in',
+    const userEee = await User.create({
+      name: 'Dr. SHAIK MAHAMMAD SHAREEF',
+      email: 'hodeee@nrtec.in',
       password: defaultPassword,
       role: 'HOD',
-      department: 'Electronics & Communication Engg (ECE)',
-      designation: 'Professor & Head of Department - ECE',
-      phone: '+91 98480 22334'
-    });
-
-    const hodEee = await User.create({
-      name: 'Dr. V. Suresh',
-      email: 'hod.eee@nec.edu.in',
-      password: defaultPassword,
-      role: 'HOD',
-      department: 'Electrical & Electronics Engg (EEE)',
+      roles: ['HOD'],
+      department: 'Electrical & Electronics Engineering (EEE)',
       designation: 'Professor & Head of Department - EEE',
-      phone: '+91 98480 33445'
+      phone: '+91 8647 239901'
     });
 
-    const hodMech = await User.create({
-      name: 'Dr. N. Ramesh',
-      email: 'hod.mech@nec.edu.in',
+    const userMech = await User.create({
+      name: 'Dr. B. Venkata Siva',
+      email: 'mechhod@nrtec.in',
       password: defaultPassword,
       role: 'HOD',
+      roles: ['HOD'],
       department: 'Mechanical Engineering (MECH)',
       designation: 'Professor & Head of Department - MECH',
-      phone: '+91 98480 44556'
+      phone: '9692464540'
+    });
+
+    const userIt = await User.create({
+      name: 'Dr. B. Jhansi Rani',
+      email: 'ithod@nrtec.in',
+      password: defaultPassword,
+      role: 'HOD',
+      roles: ['HOD'],
+      department: 'Information Technology (IT)',
+      designation: 'Professor & Head of Department - IT',
+      phone: '+91 8647 239903'
+    });
+
+    const userAicsds = await User.create({
+      name: 'Dr. V.V.A.S. Lakshmi',
+      email: 'aicsdshod@nrtec.in',
+      password: defaultPassword,
+      role: 'HOD',
+      roles: ['HOD'],
+      department: 'CSE - Emerging Technologies [CSE(ET)]',
+      designation: 'Professor & Head of Department - CSE(ET)',
+      phone: '+91 8647 239904'
+    });
+
+    const userMbaMca = await User.create({
+      name: 'Dr. S. Sivaram Prasad',
+      email: 'mbahod@nrtec.in',
+      password: defaultPassword,
+      role: 'HOD',
+      roles: ['HOD'],
+      department: 'Management Studies (MBA & MCA)',
+      designation: 'Professor & Head of Department - MBA & MCA',
+      phone: '+91 8647 239905'
+    });
+
+    const userBsh = await User.create({
+      name: 'Dr. K. P. Lakshmi',
+      email: 'bshhod@nrtec.in',
+      password: defaultPassword,
+      role: 'HOD',
+      roles: ['HOD'],
+      department: 'Basic Sciences & Humanities (BS&H)',
+      designation: 'Professor & Head of Department - BS&H',
+      phone: '+91 8647 239906'
     });
 
     // 4. Create Administrative Officer (AO)
-    const aoUser = await User.create({
+    const userAo = await User.create({
       name: 'Sri K. Srinivasa Rao',
-      email: 'ao@nec.edu.in',
+      email: 'ao@nrtec.in',
       password: defaultPassword,
       role: 'AO',
+      roles: ['AO'],
       department: 'Administrative Office',
       designation: 'Administrative Officer (AO)',
       phone: '+91 94400 99887'
     });
 
-    console.log('[Seed] Created Users, Coordinators, Halls, and AO.');
+    console.log('[Seed] Created All Real Faculty Accounts, Coordinators, and Seminar Halls.');
 
-    // 5. Create Sample Hall Bookings
+    // 5. Create Sample Hall Bookings for Demonstration
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const dayAfter = new Date(Date.now() + 172800000).toISOString().split('T')[0];
 
-    // Approved booking in Block-2
+    // Approved booking in Block-2 (Approved by Dr S N Tirumala Rao)
     await HallBooking.create({
       bookingId: 'NEC-SH-2026-1001',
       hall: hall1._id,
       hallName: hall1.name,
-      hod: hodCse._id,
-      hodName: hodCse.name,
-      department: hodCse.department,
+      hod: userCse._id,
+      hodName: userCse.name,
+      department: userCse.department,
       eventName: 'National Workshop on Generative AI & Cloud Architecture',
       eventType: 'Workshop',
       date: today,
@@ -192,25 +240,25 @@ async function seed() {
         specialArrangements: 'High bandwidth Wi-Fi for 150 student laptops'
       },
       status: 'APPROVED',
-      coordinator: coord1._id,
-      coordinatorRemarks: 'Slot confirmed. Lab assistants notified for Wi-Fi setup.',
+      coordinator: userCse._id,
+      coordinatorRemarks: 'Confirmed and scheduled. Technical lab assistants assigned for Wi-Fi and audio arrangements.',
       actionDate: new Date(),
       passNumber: 'NEC/SH-PASS/2026/1001',
       passSentToHod: true,
       passSentAt: new Date(),
-      coordinatorSignature: 'Dr. S.N Tirumalarao (Professor & Coordinator - Block-2)'
+      coordinatorSignature: 'Dr S N Tirumala Rao (Professor & Coordinator - Block-2)'
     });
 
-    // Pending booking in Block-2 for Dr. S.N Tirumalarao to approve!
+    // Pending booking in Block-2: Submitted by Mechanical HOD for Dr S N Tirumala Rao to approve!
     await HallBooking.create({
       bookingId: 'NEC-SH-2026-1002',
       hall: hall1._id,
       hallName: hall1.name,
-      hod: hodCse._id,
-      hodName: hodCse.name,
-      department: hodCse.department,
-      eventName: 'Full Stack Web Development Boot Camp with React & Node',
-      eventType: 'Workshop',
+      hod: userMech._id,
+      hodName: userMech.name,
+      department: userMech.department,
+      eventName: 'Computational Fluid Dynamics & Industrial Automation Seminar',
+      eventType: 'Guest Lecture',
       date: tomorrow,
       slot: 'FULL_DAY',
       startTime: '09:30 AM',
@@ -223,20 +271,20 @@ async function seed() {
         airConditioning: true,
         podiumMic: true,
         videoRecording: false,
-        specialArrangements: 'Arrangement of 6 power extension boards for student teams'
+        specialArrangements: '6 power extension boards for student project displays'
       },
       status: 'PENDING',
-      coordinator: coord1._id
+      coordinator: userCse._id
     });
 
-    // Pending booking in Block-3 for Dr. M.VenkataRao to approve!
+    // Pending booking in Block-3: Submitted by IT HOD for Dr. V. VENKATA RAO to approve!
     await HallBooking.create({
       bookingId: 'NEC-SH-2026-1003',
       hall: hall2._id,
       hallName: hall2.name,
-      hod: hodEce._id,
-      hodName: hodEce.name,
-      department: hodEce.department,
+      hod: userIt._id,
+      hodName: userIt.name,
+      department: userIt.department,
       eventName: 'VLSI Chip Design Trends & Embedded IoT Systems Expo',
       eventType: 'Conference',
       date: dayAfter,
@@ -251,136 +299,104 @@ async function seed() {
         airConditioning: true,
         podiumMic: true,
         videoRecording: true,
-        specialArrangements: 'Video wall configuration for live FPGA board output'
+        specialArrangements: 'Interactive LED video wall configuration for live FPGA demonstration'
       },
       status: 'PENDING',
-      coordinator: coord2._id
+      coordinator: userEce._id
     });
 
-    // Pending booking in Block-4 for Dr. S.Sunil to approve!
+    // Pending booking in Block-4: Submitted by Civil HOD for Dr. D.Suneel to approve!
     await HallBooking.create({
       bookingId: 'NEC-SH-2026-1004',
       hall: hall3._id,
       hallName: hall3.name,
-      hod: hodMech._id,
-      hodName: hodMech.name,
-      department: hodMech.department,
-      eventName: 'Industry 4.0 & Electric Mobility National Seminar',
+      hod: userCivil._id,
+      hodName: userCivil.name,
+      department: userCivil.department,
+      eventName: 'Sustainable Infrastructure & Smart Cities National Conclave',
       eventType: 'Guest Lecture',
       date: tomorrow,
       slot: 'AN',
       startTime: '01:30 PM',
       endTime: '04:30 PM',
       expectedAudience: 350,
-      chiefGuest: 'Sri P. Venkateswara Rao, GM, Hyundai Motors',
+      chiefGuest: 'Sri P. Venkateswara Rao, Chief Engineer, L&T Infrastructure',
       requirements: {
         projector: true,
         soundSystem: true,
         airConditioning: true,
         podiumMic: true,
         videoRecording: true,
-        specialArrangements: 'Stage display for prototype EV chassis model'
+        specialArrangements: 'Stage display arrangements for student CAD 3D models'
       },
       status: 'PENDING',
-      coordinator: coord3._id
+      coordinator: userVicePrincipal._id
     });
 
     // 6. Create Sample Examiner Hospitality Requests to AO
-    // Request 1: Pending for AO to approve
     await ExaminerRequest.create({
       requisitionNo: 'NEC-AO-REQ-2026-081',
-      hod: hodCse._id,
-      hodName: hodCse.name,
-      department: hodCse.department,
+      hod: userCse._id,
+      hodName: userCse.name,
+      department: userCse.department,
       purpose: 'End Semester Practical / Lab Examination',
       examSubject: 'Advanced Data Structures & Algorithms Lab (20CS301)',
       examDateFrom: tomorrow,
       examDateTo: tomorrow,
       examiners: [
         {
-          name: 'Dr. C. H. Satyanarayana',
-          designation: 'Professor, Dept of CSE',
-          institution: 'JNTUK University College of Engineering, Kakinada',
-          phone: '+91 98491 55667',
-          email: 'ch.satya@jntuk.edu.in'
-        },
-        {
-          name: 'Dr. K. Srinivas Rao',
-          designation: 'Associate Professor',
-          institution: 'Acharya Nagarjuna University, Guntur',
-          phone: '+91 98492 66778',
-          email: 'ksrao@anu.edu.in'
+          name: 'Dr. T. Ramanjaneyulu',
+          designation: 'Professor in CSE',
+          institution: 'JNTUK University College of Engineering, Narasaraopet',
+          phone: '+91 94405 11223',
+          email: 'ramanjaneyulu.t@jntuk.edu.in'
         }
       ],
       accommodation: {
         required: true,
-        roomCount: 2,
+        roomCount: 1,
         roomType: 'Executive AC Guest Suite',
         checkInDate: tomorrow,
         checkInTime: '08:00 AM',
         checkOutDate: tomorrow,
-        checkOutTime: '06:30 PM',
+        checkOutTime: '06:00 PM',
         allocatedRoom: 'Pending AO Allocation'
       },
       food: {
-        breakfast: {
-          required: true,
-          count: 3,
-          notes: 'Idli, Vada, Upma with Filter Coffee at Guest House'
-        },
-        morningTea: {
-          required: true,
-          count: 5,
-          time: '11:00 AM',
-          withSnacks: true
-        },
-        lunch: {
-          required: true,
-          count: 5,
-          mealType: 'Special Executive Meals',
-          vegCount: 4,
-          nonVegCount: 1,
-          notes: 'Special Executive Meals with Sweets and Ice cream at Guest House Dining'
-        },
-        eveningTea: {
-          required: true,
-          count: 5,
-          time: '04:00 PM',
-          withSnacks: true
-        },
-        dinner: {
-          required: false,
-          count: 0,
-          notes: ''
-        }
+        breakfast: { required: true, count: 2, notes: 'South Indian Breakfast with Coffee' },
+        morningTea: { required: true, count: 2, time: '11:00 AM', withSnacks: true },
+        lunch: { required: true, count: 2, mealType: 'Special Executive Meals', vegCount: 2, nonVegCount: 0, notes: 'VIP Faculty Lunch' },
+        eveningTea: { required: true, count: 2, time: '04:00 PM', withSnacks: true },
+        dinner: { required: false, count: 0, notes: '' }
       },
       conveyance: {
         pickupRequired: true,
-        pickupLocation: 'Narasaraopet Railway Station (Morning 07:30 AM)',
-        pickupTime: '07:30 AM',
-        dropRequired: true
+        pickupLocation: 'Narasaraopet Railway Station',
+        pickupTime: '08:15 AM',
+        dropRequired: true,
+        dropLocation: 'Narasaraopet Railway Station',
+        dropTime: '05:30 PM'
       },
-      specialInstructions: 'Examiners traveling by express train. College vehicle requested for station pickup.',
-      status: 'PENDING'
+      status: 'PENDING',
+      generalRemarks: 'External examiner appointed as per JNTUK University order. Kindly arrange prompt station pickup.'
     });
 
-    // Request 2: Approved by AO
     await ExaminerRequest.create({
-      requisitionNo: 'NEC-AO-REQ-2026-075',
-      hod: hodEce._id,
-      hodName: hodEce.name,
-      department: hodEce.department,
-      purpose: 'B.Tech Final Project Viva-Voce',
-      examSubject: 'Major Project Evaluation & Comprehensive Viva (20EC801)',
+      requisitionNo: 'NEC-AO-REQ-2026-080',
+      hod: userEee._id,
+      hodName: userEee.name,
+      department: userEee.department,
+      purpose: 'End Semester Practical / Lab Examination',
+      examSubject: 'Power Electronics & Drives Viva Voce (22PE102)',
       examDateFrom: today,
       examDateTo: today,
       examiners: [
         {
-          name: 'Prof. Y. Rama Rao',
-          designation: 'Professor & Head',
+          name: 'Prof. Ch. Subrahmanyam',
+          designation: 'Senior Professor in EEE',
           institution: 'Andhra University College of Engineering, Visakhapatnam',
-          phone: '+91 94411 77889',
-          email: 'yr_rao@andhrauniversity.edu.in'
+          phone: '+91 98481 99881',
+          email: 'subrahmanyam.eee@andhrauniversity.edu.in'
         }
       ],
       accommodation: {
@@ -388,205 +404,73 @@ async function seed() {
         roomCount: 1,
         roomType: 'Executive AC Guest Suite',
         checkInDate: today,
-        checkInTime: '07:45 AM',
+        checkInTime: '08:00 AM',
         checkOutDate: today,
-        checkOutTime: '07:00 PM',
-        allocatedRoom: 'Suite 101 - VVIP Executive Suite, Guest House'
+        checkOutTime: '06:00 PM',
+        allocatedRoom: 'Suite Room 102'
       },
       food: {
-        breakfast: {
-          required: true,
-          count: 2,
-          notes: 'Continental & South Indian Breakfast'
-        },
-        morningTea: {
-          required: true,
-          count: 4,
-          time: '11:15 AM',
-          withSnacks: true
-        },
-        lunch: {
-          required: true,
-          count: 4,
-          mealType: 'Special Executive Meals',
-          vegCount: 3,
-          nonVegCount: 1,
-          notes: 'Arranged in Executive Dining Hall'
-        },
-        eveningTea: {
-          required: true,
-          count: 4,
-          time: '04:15 PM',
-          withSnacks: true
-        },
-        dinner: {
-          required: true,
-          count: 2,
-          notes: 'Light dinner before train departure'
-        }
+        breakfast: { required: true, count: 2, notes: 'South Indian' },
+        morningTea: { required: true, count: 3, time: '11:00 AM', withSnacks: true },
+        lunch: { required: true, count: 3, mealType: 'Special Executive Meals', vegCount: 3, nonVegCount: 0, notes: 'Arranged in VIP Dining' },
+        eveningTea: { required: true, count: 3, time: '04:00 PM', withSnacks: true },
+        dinner: { required: false, count: 0, notes: '' }
       },
       conveyance: {
         pickupRequired: false,
         pickupLocation: '',
         pickupTime: '',
-        dropRequired: true
+        dropRequired: false
       },
-      specialInstructions: 'Return train departs at 08:30 PM from Guntur.',
       status: 'APPROVED',
-      aoOfficer: aoUser._id,
-      aoRemarks: 'Suite 101 allotted. Canteen supervisor instructed to serve executive lunch in guest dining hall.',
-      sanctionOrderNo: 'NEC/AO/SANCT/2026/039',
-      actionDate: new Date()
+      generalRemarks: 'Examiner arrived via own transport. Guest room and VIP lunch required.',
+      aoActionDate: new Date(),
+      aoRemarks: 'Approved. Executive Suite Room 102 reserved. College pantry notified for VIP lunch.',
+      arrangedBy: 'Sri K. Srinivasa Rao (AO)'
     });
 
-    // Seed Department Stationary Requisitions (HOD -> AO)
-    // 1. CSE Department: PENDING Exam Critical Requisition
+    // 7. Create Sample Stationary Requests to AO
     await StationaryRequest.create({
-      requisitionNo: 'NEC-AO-STAT-2026-1042',
-      department: hodCse.department,
-      requestedBy: hodCse._id,
-      requestorName: hodCse.name,
-      requestorDesignation: hodCse.designation,
+      requisitionNo: 'NEC-STAT-2026-042',
+      department: userCse.department,
+      requestedBy: userCse._id,
+      requestorName: userCse.name,
+      requestorDesignation: 'Head of Department - CSE',
       purpose: 'End Semester Examinations',
       urgency: 'EXAM_CRITICAL',
-      requiredByDate: today,
+      requiredByDate: tomorrow,
       items: [
-        {
-          itemName: 'A4 Copier Paper Sheets (75 GSM)',
-          category: 'Paper & Sheets',
-          quantityRequested: 20,
-          quantitySanctioned: null,
-          unit: 'Reams (500 Sheets)',
-          specification: 'JK Copier or Century Star (Bright White, 75 GSM)'
-        },
-        {
-          itemName: 'Heavy Duty Stapler (No. 10)',
-          category: 'Fasteners & Desktop',
-          quantityRequested: 8,
-          quantitySanctioned: null,
-          unit: 'Pieces / Nos',
-          specification: 'Kangaro HD-10D or equivalent'
-        },
-        {
-          itemName: 'Stapler Pin Boxes (No. 10)',
-          category: 'Fasteners & Desktop',
-          quantityRequested: 15,
-          quantitySanctioned: null,
-          unit: 'Boxes',
-          specification: 'Kangaro No. 10 (1000 staples per box)'
-        },
-        {
-          itemName: 'HB Writing & Drawing Pencils',
-          category: 'Writing Instruments',
-          quantityRequested: 5,
-          quantitySanctioned: null,
-          unit: 'Boxes',
-          specification: 'Apsara Platinum Extra Dark HB (Pack of 10)'
-        },
-        {
-          itemName: 'Whiteboard Markers Assorted (Black, Blue, Red, Green)',
-          category: 'Writing Instruments',
-          quantityRequested: 10,
-          quantitySanctioned: null,
-          unit: 'Sets',
-          specification: 'Camlin Whiteboard Marker 4-color set'
-        }
+        { itemName: 'A4 Printing & Photocopying Paper (75 GSM)', category: 'Paper & Sheets', quantityRequested: 15, unit: 'Reams (500 Sheets)', specification: 'White 75 GSM' },
+        { itemName: 'Permanent Whiteboard Markers (Blue & Black)', category: 'Writing Instruments', quantityRequested: 24, unit: 'Pieces / Nos', specification: 'Chisel Tip' },
+        { itemName: 'Heavy Duty Stapler & Pin Boxes', category: 'Fasteners & Desktop', quantityRequested: 4, unit: 'Sets', specification: 'No. 10 Stapler' }
       ],
-      generalRemarks: 'Urgent requirement for Autonomous End Semester Examinations starting this week. Required for exam cell and student seating halls.',
+      generalRemarks: 'Examinations commence this Monday. Immediate issue from central stores requested.',
       status: 'PENDING'
     });
 
-    // 2. ECE Department: APPROVED Requisition
     await StationaryRequest.create({
-      requisitionNo: 'NEC-AO-STAT-2026-1018',
-      department: hodEce.department,
-      requestedBy: hodEce._id,
-      requestorName: hodEce.name,
-      requestorDesignation: hodEce.designation,
+      requisitionNo: 'NEC-STAT-2026-041',
+      department: userMech.department,
+      requestedBy: userMech._id,
+      requestorName: userMech.name,
+      requestorDesignation: 'Head of Department - MECH',
       purpose: 'NBA / NAAC Accreditation Documentation',
-      urgency: 'URGENT',
-      requiredByDate: today,
-      items: [
-        {
-          itemName: 'A4 Copier Paper Sheets (75 GSM)',
-          category: 'Paper & Sheets',
-          quantityRequested: 10,
-          quantitySanctioned: 10,
-          unit: 'Reams (500 Sheets)',
-          specification: '75 GSM Multipurpose Paper'
-        },
-        {
-          itemName: 'Lever Arch Box Files (Index Files)',
-          category: 'Filing & Folders',
-          quantityRequested: 25,
-          quantitySanctioned: 25,
-          unit: 'Pieces / Nos',
-          specification: 'Heavy duty hardboard file with spring clip'
-        },
-        {
-          itemName: 'Heavy Duty 2-Hole Punching Machine',
-          category: 'Fasteners & Desktop',
-          quantityRequested: 3,
-          quantitySanctioned: 3,
-          unit: 'Pieces / Nos',
-          specification: 'Kangaro DP-600 heavy duty'
-        },
-        {
-          itemName: 'Practical Record Registers (200 Pages)',
-          category: 'Registers & Pads',
-          quantityRequested: 12,
-          quantitySanctioned: 12,
-          unit: 'Pieces / Nos',
-          specification: 'Hard bound ruled registers'
-        }
-      ],
-      generalRemarks: 'Required for compilation of Criteria-3 and Criteria-4 Course Outcome dossiers.',
-      status: 'APPROVED',
-      aoOfficer: aoUser._id,
-      aoRemarks: 'Sanctioned from Central Store. Authorized representative may collect from Storekeeper (Room 104, Admin Block).',
-      sanctionOrderNo: 'NEC/AO/STAT/2026/018',
-      actionDate: new Date()
-    });
-
-    // 3. MECH Department: ISSUED Requisition
-    await StationaryRequest.create({
-      requisitionNo: 'NEC-AO-STAT-2026-1005',
-      department: hodMech.department,
-      requestedBy: hodMech._id,
-      requestorName: hodMech.name,
-      requestorDesignation: hodMech.designation,
-      purpose: 'Laboratory & Practical Records',
       urgency: 'ROUTINE',
       requiredByDate: today,
       items: [
-        {
-          itemName: 'Engineering Drawing A3 Paper Bundles',
-          category: 'Paper & Sheets',
-          quantityRequested: 6,
-          quantitySanctioned: 6,
-          unit: 'Packets',
-          specification: 'A3 Cartridge 130 GSM drawing sheets'
-        },
-        {
-          itemName: '2B / 4B Technical Drawing Pencils',
-          category: 'Writing Instruments',
-          quantityRequested: 4,
-          quantitySanctioned: 4,
-          unit: 'Boxes',
-          specification: 'Staedtler / Faber-Castell Drawing Pencils'
-        }
+        { itemName: 'Document Spring Files (Hard Cover)', category: 'Filing & Folders', quantityRequested: 60, quantitySanctioned: 60, unit: 'Pieces / Nos', specification: 'Box File Index' },
+        { itemName: 'A3 Graph Sheets (Centimeter Grid)', category: 'Paper & Sheets', quantityRequested: 200, quantitySanctioned: 200, unit: 'Pieces / Nos', specification: 'Centimeter Grid' }
       ],
-      generalRemarks: 'For CAD/CAM and Engineering Graphics practical drafting sessions.',
-      status: 'ISSUED',
-      aoOfficer: aoUser._id,
-      aoRemarks: 'Dispatched to Mechanical Department Lab Storekeeper Sri V. Prasad.',
-      sanctionOrderNo: 'NEC/AO/STAT/2026/005',
-      actionDate: new Date(Date.now() - 86400000),
-      dispatchedAt: new Date()
+      generalRemarks: 'Required for ongoing NAAC criteria documentation verification.',
+      status: 'APPROVED',
+      aoActionDate: new Date(),
+      aoRemarks: 'Approved for issue from College Central Stationery Store on Counter Slip #902.',
+      dispatchedDate: new Date(),
+      issuedItemsSummary: 'All items dispatched to Mechanical department office.'
     });
 
-    console.log('[Seed] Successfully seeded sample bookings, examiner hospitality requests, and stationary requisitions.');
-    console.log('[Seed] Database initialization complete!');
+    console.log('[Seed] Sample bookings, examiner requisitions, and stationary requests successfully populated.');
+    console.log('[Seed] Database seeding completed with 100% REAL faculty & coordinator data!');
     process.exit(0);
   } catch (err) {
     console.error('[Seed] Error during seeding:', err);

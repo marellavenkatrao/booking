@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import NecLogo from '../assets/NecLogo';
-import CredentialsModal from './CredentialsModal';
-import { LogOut, KeyRound, User, Calendar, Coffee, Sparkles } from 'lucide-react';
+import { LogOut, User, Calendar, Coffee } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab }) {
-  const { user, logout } = useAuth();
-  const [showCreds, setShowCreds] = useState(false);
+  const { user, switchRole, logout } = useAuth();
 
   return (
     <nav className="navbar">
@@ -18,14 +16,46 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
         {/* Right action items */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <button 
-            className="btn btn-secondary btn-sm"
-            onClick={() => setShowCreds(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <KeyRound size={15} color="#701a75" />
-            <span>All Credentials</span>
-          </button>
+          {/* Dual-Role Switcher for faculty holding both HOD & Coordinator roles (e.g. Dr S N Tirumala Rao, Dr. V. VENKATA RAO) */}
+          {user && user.roles && user.roles.length > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              padding: '3px',
+              gap: '4px',
+              border: '1.5px solid #cbd5e1'
+            }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', padding: '0 6px', textTransform: 'uppercase' }}>
+                Active View:
+              </span>
+              {user.roles.map((r) => {
+                const isActive = user.role === r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => switchRole(r)}
+                    style={{
+                      border: 'none',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      background: isActive ? '#701a75' : 'transparent',
+                      color: isActive ? '#ffffff' : '#475569',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                    title={`Switch to ${r === 'HOD' ? 'Department HOD Portal' : 'Seminar Hall Coordinator Console'}`}
+                  >
+                    {r === 'HOD' ? 'HOD Portal' : r === 'COORDINATOR' ? 'Coordinator Console' : r}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {user && (
             <div className="user-profile-badge">
@@ -49,7 +79,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   {user.name}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  {user.department || user.designation}
+                  {user.email}
                 </div>
               </div>
 
@@ -72,8 +102,6 @@ export default function Navbar({ activeTab, setActiveTab }) {
           )}
         </div>
       </div>
-
-      <CredentialsModal isOpen={showCreds} onClose={() => setShowCreds(false)} />
     </nav>
   );
 }

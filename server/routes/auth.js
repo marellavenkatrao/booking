@@ -36,10 +36,12 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        roles: user.roles?.length ? user.roles : [user.role],
         department: user.department,
         designation: user.designation,
         assignedHall: user.assignedHall,
-        phone: user.phone
+        phone: user.phone,
+        landline: user.landline
       }
     });
   } catch (err) {
@@ -47,13 +49,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Quick demo login (by user ID) - for seamless testing
+// Quick login (by user ID)
 router.post('/demo-login', async (req, res) => {
   try {
     const { userId } = req.body;
     const user = await User.findById(userId).populate('assignedHall');
     if (!user) {
-      return res.status(404).json({ message: 'Demo user not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     const token = jwt.sign(
@@ -69,14 +71,48 @@ router.post('/demo-login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        roles: user.roles?.length ? user.roles : [user.role],
         department: user.department,
         designation: user.designation,
         assignedHall: user.assignedHall,
-        phone: user.phone
+        phone: user.phone,
+        landline: user.landline
       }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error during demo login', error: err.message });
+    res.status(500).json({ message: 'Server error during login', error: err.message });
+  }
+});
+
+// Switch active role for dual-role users (e.g. HOD CSE <-> Block-2 Coordinator)
+router.post('/switch-role', authMiddleware, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const allowedRoles = req.user.roles?.length ? req.user.roles : [req.user.role];
+    if (!allowedRoles.includes(role)) {
+      return res.status(403).json({ message: `Access denied. Account is not registered for role '${role}'.` });
+    }
+
+    req.user.role = role;
+    await req.user.save();
+
+    res.json({
+      message: `Active view switched to ${role}`,
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+        roles: req.user.roles,
+        department: req.user.department,
+        designation: req.user.designation,
+        assignedHall: req.user.assignedHall,
+        phone: req.user.phone,
+        landline: req.user.landline
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to switch active role', error: err.message });
   }
 });
 
@@ -88,21 +124,32 @@ router.get('/me', authMiddleware, async (req, res) => {
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
+      roles: req.user.roles?.length ? req.user.roles : [req.user.role],
       department: req.user.department,
       designation: req.user.designation,
       assignedHall: req.user.assignedHall,
-      phone: req.user.phone
+      phone: req.user.phone,
+      landline: req.user.landline
     }
   });
 });
 
-// Get all demo accounts for quick role-switching in UI
+// Faculty & Coordinator Directory
 router.get('/demo-users', async (req, res) => {
   try {
     const users = await User.find({}, '-password').populate('assignedHall');
     res.json({ users });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch demo accounts', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch directory', error: err.message });
+  }
+});
+
+router.get('/directory', async (req, res) => {
+  try {
+    const users = await User.find({}, '-password').populate('assignedHall');
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch faculty directory', error: err.message });
   }
 });
 

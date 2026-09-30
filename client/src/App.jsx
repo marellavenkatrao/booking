@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import QuickRoleSwitcher from './components/QuickRoleSwitcher';
 import Login from './pages/Login';
 import HodDashboard from './pages/HodDashboard';
 import CoordinatorDashboard from './pages/CoordinatorDashboard';
@@ -29,9 +28,6 @@ function AppContent() {
 
   return (
     <div className="app-container">
-      {/* 1-Click Role Switcher for seamless testing and demonstration */}
-      <QuickRoleSwitcher />
-
       {/* College Header / Navbar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 

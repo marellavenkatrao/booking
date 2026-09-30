@@ -5,6 +5,15 @@ const HallBooking = require('../models/HallBooking');
 const SeminarHall = require('../models/SeminarHall');
 const { authMiddleware } = require('../middleware/auth');
 
+// Helper to get local date string YYYY-MM-DD
+function getLocalDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Create a hall booking request (HOD)
 router.post('/', authMiddleware, async (req, res) => {
   try {
@@ -13,6 +22,8 @@ router.post('/', authMiddleware, async (req, res) => {
       eventName,
       eventType,
       date,
+      fromDate,
+      toDate,
       slot,
       startTime,
       endTime,
@@ -21,8 +32,26 @@ router.post('/', authMiddleware, async (req, res) => {
       requirements
     } = req.body;
 
-    if (!hallId || !eventName || !date || !slot) {
+    const effectiveFromDate = fromDate || date;
+    const effectiveToDate = toDate || effectiveFromDate;
+
+    if (!hallId || !eventName || !effectiveFromDate || !slot) {
       return res.status(400).json({ message: 'Please provide all required booking fields (Hall, Event Name, Date, Slot)' });
+    }
+
+    // 1. Date Validation: date must be greater than or equal to today
+    const todayStr = getLocalDateString();
+    if (effectiveFromDate < todayStr) {
+      return res.status(400).json({ 
+        message: `Booking date cannot be in the past. Date (${effectiveFromDate}) must be greater than or equal to today (${todayStr}).` 
+      });
+    }
+
+    // 2. Multiple days validation: toDate cannot be earlier than fromDate
+    if (effectiveToDate < effectiveFromDate) {
+      return res.status(400).json({ 
+        message: `Invalid date range. End Date (${effectiveToDate}) cannot be earlier than Start Date (${effectiveFromDate}).` 
+      });
     }
 
     // Robust Hall Lookup (by ObjectId, Code 'BLOCK-2', or shorthand 'b2')
@@ -49,7 +78,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const resolvedHallId = hall._id;
 
-    // Clash detection: check if an APPROVED booking exists for this hall on this date for conflicting slot
+    // Clash detection: check if an APPROVED booking exists for this hall overlapping with [effectiveFromDate, effectiveToDate]
     const slotConflictConditions = [
       { slot: slot },
       { slot: 'FULL_DAY' }
@@ -60,17 +89,35 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const conflict = await HallBooking.findOne({
       hall: resolvedHallId,
-      date: date,
       status: 'APPROVED',
-      $or: slotConflictConditions
+      $or: slotConflictConditions,
+      $and: [
+        {
+          $or: [
+            { fromDate: { $lte: effectiveToDate } },
+            { date: { $lte: effectiveToDate } }
+          ]
+        },
+        {
+          $or: [
+            { toDate: { $gte: effectiveFromDate } },
+            { date: { $gte: effectiveFromDate } }
+          ]
+        }
+      ]
     });
 
     if (conflict) {
+      const conflictDateRange = (conflict.fromDate && conflict.toDate && conflict.fromDate !== conflict.toDate)
+        ? `${conflict.fromDate} to ${conflict.toDate}`
+        : (conflict.date || conflict.fromDate);
       return res.status(409).json({ 
-        message: `Seminar Hall is already booked and approved for '${conflict.eventName}' (${conflict.slot}) on ${date}`,
+        message: `Seminar Hall is already booked and approved for '${conflict.eventName}' (${conflict.slot}) on ${conflictDateRange}`,
         conflict
       });
     }
+
+    const isMultiDay = effectiveFromDate !== effectiveToDate;
 
     const newBooking = new HallBooking({
       hall: resolvedHallId,
@@ -80,7 +127,10 @@ router.post('/', authMiddleware, async (req, res) => {
       department: req.user.department || 'General',
       eventName,
       eventType: eventType || 'Guest Lecture',
-      date,
+      date: effectiveFromDate,
+      fromDate: effectiveFromDate,
+      toDate: effectiveToDate,
+      isMultiDay,
       slot,
       startTime: startTime || (slot === 'FN' ? '09:30 AM' : slot === 'AN' ? '01:30 PM' : '09:30 AM'),
       endTime: endTime || (slot === 'FN' ? '12:30 PM' : slot === 'AN' ? '04:30 PM' : '04:30 PM'),
@@ -172,10 +222,11 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
     }
 
     // Check permissions: only coordinator of this hall or AO/Admin
-    if (req.user.role === 'COORDINATOR') {
+    const isCoordinator = req.user.role === 'COORDINATOR' || (req.user.roles && req.user.roles.includes('COORDINATOR'));
+    if (isCoordinator) {
       const userAssignedHallId = (req.user.assignedHall?._id || req.user.assignedHall || '').toString();
       const bookingHallId = (booking.hall?._id || booking.hall).toString();
-      if (userAssignedHallId !== bookingHallId) {
+      if (userAssignedHallId && userAssignedHallId !== bookingHallId) {
         return res.status(403).json({ message: 'You are only authorized to review bookings for your assigned Seminar Hall' });
       }
     } else if (req.user.role !== 'AO') {
@@ -192,17 +243,36 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
         slotConflictConditions.push({ slot: 'FN' }, { slot: 'AN' });
       }
 
+      const bookingFrom = booking.fromDate || booking.date;
+      const bookingTo = booking.toDate || bookingFrom;
+
       const existingApproval = await HallBooking.findOne({
         _id: { $ne: booking._id },
         hall: booking.hall._id || booking.hall,
-        date: booking.date,
         status: 'APPROVED',
-        $or: slotConflictConditions
+        $or: slotConflictConditions,
+        $and: [
+          {
+            $or: [
+              { fromDate: { $lte: bookingTo } },
+              { date: { $lte: bookingTo } }
+            ]
+          },
+          {
+            $or: [
+              { toDate: { $gte: bookingFrom } },
+              { date: { $gte: bookingFrom } }
+            ]
+          }
+        ]
       });
 
       if (existingApproval) {
+        const conflictRange = (existingApproval.fromDate && existingApproval.toDate && existingApproval.fromDate !== existingApproval.toDate)
+          ? `${existingApproval.fromDate} to ${existingApproval.toDate}`
+          : (existingApproval.date || existingApproval.fromDate);
         return res.status(409).json({ 
-          message: `Cannot approve: Hall is already confirmed for '${existingApproval.eventName}' on ${booking.date}`,
+          message: `Cannot approve: Hall is already confirmed for '${existingApproval.eventName}' on ${conflictRange}`,
           existingApproval 
         });
       }
@@ -232,6 +302,39 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Error updating booking status', error: err.message });
+  }
+});
+
+// Cancel a booking (Department HOD)
+router.put('/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const { cancellationReason } = req.body;
+    const booking = await HallBooking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking request not found' });
+    }
+
+    // Permission check: Department HOD who booked it or AO/Admin
+    const isOwner = booking.hod.toString() === req.user._id.toString();
+    if (!isOwner && req.user.role !== 'AO') {
+      return res.status(403).json({ message: 'You are only authorized to cancel bookings placed by your department' });
+    }
+
+    if (booking.status === 'CANCELLED') {
+      return res.status(400).json({ message: 'This booking is already cancelled' });
+    }
+
+    booking.status = 'CANCELLED';
+    booking.cancellationReason = cancellationReason || 'Cancelled by Department HOD';
+    booking.cancelledAt = new Date();
+    await booking.save();
+
+    res.json({ 
+      message: `Booking request '${booking.eventName}' has been successfully cancelled.`, 
+      booking 
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error cancelling booking', error: err.message });
   }
 });
 

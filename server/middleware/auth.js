@@ -18,6 +18,12 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
+    // Support active role switching if user has multiple roles (e.g. HOD + COORDINATOR)
+    const activeRoleHeader = req.headers['x-active-role'];
+    if (activeRoleHeader && (user.roles?.includes(activeRoleHeader) || user.role === activeRoleHeader)) {
+      user.role = activeRoleHeader;
+    }
+
     req.user = user;
     next();
   } catch (err) {
